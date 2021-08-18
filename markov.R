@@ -13,3 +13,5 @@ for(i in 2:length(files)) {
   data <- rbind(data,hold)
 }
 remove(hold, x, i, files)
+
+#hello
