@@ -210,3 +210,14 @@ pr_ordered_table <- xtable(pass_rating_ordered, caption = "Pass Ratings for Pass
 print(pr_ordered_table, floating = FALSE, tabular.environment = "longtable")
 
 #court visualization
+pass_rate <- markov_data %>% 
+  dplyr::filter(skill == "Set") %>%
+  group_by(end_zone, end_subzone) %>%
+  summarize(n()) %>%
+  mutate(rate = pass_rating[paste("P", end_zone, end_subzone, sep=""), 1]) %>% 
+  ungroup
+
+pass_rate <- cbind(pass_rate, dv_xy(pass_rate$end_zone, subzones = pass_rate$end_subzone, end = "lower"))
+
+ggplot(pass_rate, aes(x, y, fill = rate)) + geom_tile() +
+  scale_fill_gradient2(name = "Pass Rating")
