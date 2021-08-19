@@ -1,6 +1,7 @@
 library(datavolley)
 library(dplyr)
 library(hash)
+library(xtable)
 
 #read in data
 files <- list.files(path = "./dvw_files", pattern = "\\.dvw$")
@@ -31,14 +32,12 @@ states <- c("Serve", "Pass Error", "Overpass", "P1A", "P1B", "P1C", "P1D", "P2A"
             "P8B", "P8C", "P8D", "P9A", "P9B", "P9C", "P9D", "Perfect Set", "Poor Set", "Rally Won", "Rally Lost", "Rally Continuation")
 transition_matrix <- compute_transition_probabilities(sequence, states)
 
-#transition martix no setting
+#transition matrix no setting
 states2 <- c("Serve", "Pass Error", "Overpass", "P1A", "P1B", "P1C", "P1D", "P2A", "P2B", "P2C", "P2D", "P3A", "P3B", "P3C", "P3D", 
              "P4A", "P4B", "P4C", "P4D", "P5A", "P5B", "P5C", "P5D", "P6A", "P6B", "P6C", "P6D", "P7A", "P7B", "P7C", "P7D", "P8A", 
              "P8B", "P8C", "P8D", "P9A", "P9B", "P9C", "P9D", "Rally Won", "Rally Lost", "Rally Continuation")
 sequence2 <- sequence[! sequence %in% c("Perfect Set", "Poor Set")]
 transition_matrix2 <- compute_transition_probabilities(sequence2, states2)
-
-#create markov chain object
 
 
 #functions
@@ -174,3 +173,40 @@ compute_transition_probabilities <- function(sequence, states) {
   
   return(transition_matrix)
 }
+
+
+#making tables and figures
+
+#transition matrix
+trans_mat_table <- xtable(transition_matrix, caption = "Transition Matrix", digits = 3)
+print(trans_mat_table, floating = TRUE, floating.environment = "sidewaystable", scale_box = 0.7)
+
+#results table
+results <- transition_matrix2[pass_states, c("Rally Won", "Rally Lost", "Rally Continuation")]
+results_table <- xtable(results, caption = "Probability Point Estimates for Pass Types", digits = 3)
+print(results_table, floating = FALSE, tabular.environment = "longtable")
+
+#calculate FBSO
+passes <- 0
+for (state in pass_states) {
+  passes <- passes + state_counts[[state]]
+}
+serves <- markov_data %>%
+  filter(skill == "Serve") %>%
+  group_by(evaluation) %>%
+  summarize(n())
+FBSO <- (state_counts[["Rally Won"]] - serves[1, 2])/passes
+
+#pass rating table
+pass_rating <- results[pass_states, c("Rally Won", "Rally Lost")]
+for (state in pass_states) {
+  pass_rating[state, "Rally Won"] <- pass_rating[state, "Rally Won"] - FBSO[1,1]
+}
+pass_rating_table <- xtable(pass_rating, caption = "Pass Ratings for Pass Type", digits = 3)
+print(pass_rating_table, floating = FALSE, tabular.environment = "longtable")
+
+pass_rating_ordered <- pass_rating[order(pass_rating[,1], decreasing = TRUE),]
+pr_ordered_table <- xtable(pass_rating_ordered, caption = "Pass Ratings for Pass Type Ordered", digits = 3)
+print(pr_ordered_table, floating = FALSE, tabular.environment = "longtable")
+
+#court visualization
